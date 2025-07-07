@@ -1,18 +1,26 @@
 const express = require('express')
 const ytdl = require('ytdl-core')
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 8080
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   const url = req.query.url
-  if (!ytdl.validateURL(url)) return res.status(400).send('Invalid YouTube URL')
+  if (!url || !ytdl.validateURL(url)) {
+    return res.status(400).send('Invalid or missing YouTube URL')
+  }
 
-  ytdl.getInfo(url).then(info => {
-    res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`)
-    ytdl(url, { filter: 'audioandvideo' }).pipe(res)
-  }).catch(() => {
+  try {
+    const info = await ytdl.getInfo(url)
+    const format = ytdl.chooseFormat(info.formats, { quality: '18' }) // 360p mp4 with audio+video
+    if (!format || !format.url) throw new Error('No suitable format found')
+
+    const title = info.videoDetails.title.replace(/[^\w\s]/gi, '')
+    res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`)
+    ytdl.downloadFromInfo(info, { format }).pipe(res)
+
+  } catch (err) {
     res.status(500).send('Error processing the video')
-  })
+  }
 })
 
 app.listen(PORT, () => {
