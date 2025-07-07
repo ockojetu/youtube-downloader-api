@@ -9,7 +9,7 @@ app.get('/', (req, res) => {
 
   ytdl.getInfo(url).then(info => {
     res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`)
-    ytdl(url, { format: 'mp4' }).pipe(res)
+    ytdl(url, { filter: 'audioandvideo' }).pipe(res)
   }).catch(() => {
     res.status(500).send('Error processing the video')
   })
